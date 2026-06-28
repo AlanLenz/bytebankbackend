@@ -1,6 +1,11 @@
 import { getAuth } from 'firebase-admin/auth';
 
 const verifyToken = async (req, res, next) => {
+  // 💡 BLINDAGEM DO PREFLIGHT: Libera a passagem VIP para perguntas de CORS do navegador
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized: Missing token' });

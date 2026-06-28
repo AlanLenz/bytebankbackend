@@ -22,6 +22,7 @@ initializeApp({
 });
 
 const app = express();
+
 app.use(cors({
   origin: [
     'http://localhost:3000',
@@ -36,8 +37,10 @@ app.options('*', cors());
 
 app.use(express.json());
 
+// 💡 CORREÇÃO CRÍTICA PARA O RENDER: Libera o SSL do PostgreSQL
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
 // 1. GET: Fetch all transfers for the logged-in user
@@ -45,7 +48,6 @@ app.get('/transfers', verifyToken, async (req, res) => {
   try {
     const { limit } = req.query;
     
-    // SELECT * automatically pulls your new categories_id and receipt_url columns!
     let queryText = 'SELECT * FROM transfers WHERE user_id = $1 ORDER BY id DESC';
     const queryParams = [req.user.uid];
 
@@ -62,10 +64,8 @@ app.get('/transfers', verifyToken, async (req, res) => {
   }
 });
 
-
 // 2. POST: Create a new transfer
 app.post('/transfers', verifyToken, async (req, res) => {
-  // Destructure the new fields expected from the React frontend payload
   const { description, amount, date, type, categories_id, receipt_url } = req.body;
   const userId = req.user.uid;
 
@@ -75,7 +75,6 @@ app.post('/transfers', verifyToken, async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7) 
       RETURNING *;
     `;
-    // Safely inject values (using || null handles cases where an attachment isn't sent)
     const values = [userId, description, amount, date, type, categories_id || null, receipt_url || null];
     const result = await pool.query(query, values);
 
@@ -113,7 +112,6 @@ app.put('/transfers/:id', verifyToken, async (req, res) => {
   }
 });
 
-
 // 4. DELETE: Exclude a specific transfer
 app.delete('/transfers/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
@@ -134,12 +132,7 @@ app.delete('/transfers/:id', verifyToken, async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
-});
-
-// 5. POST: Sync Firebase user to PostgreSQL
+// 5. POST: Sync Firebase user (Movido para ANTES do listen!)
 app.post('/sync-user', verifyToken, async (req, res) => {
   const userId = req.user.uid;
   const email = req.user.email || 'no-email@provided.com'; 
@@ -156,4 +149,10 @@ app.post('/sync-user', verifyToken, async (req, res) => {
     console.error('Error syncing user:', error);
     res.status(500).json({ error: 'Erro ao sincronizar usuário' });
   }
+});
+
+// 6. O LISTEN TEM QUE SER A ÚLTIMA LINHA ABSOLUTA DO ARQUIVO
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`Backend server running on port ${PORT}`);
 });
