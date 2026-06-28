@@ -24,12 +24,16 @@ initializeApp({
 const app = express();
 app.use(cors({
   origin: [
-    'http://localhost:3000', 
-    'https://tech-challenge-byte-bank.vercel.app/'
+    'http://localhost:3000',
+    'https://tech-challenge-byte-bank.vercel.app'
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
+
+app.options('*', cors()); 
+
 app.use(express.json());
 
 const pool = new Pool({
