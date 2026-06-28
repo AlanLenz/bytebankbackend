@@ -37,6 +37,16 @@ app.options('*', cors());
 
 app.use(express.json());
 
+// 🚀 ROTA DE BOAS-VINDAS / HEALTH-CHECK (Para bancas avaliadoras e pings de teste)
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    status: "online",
+    message: "API do Bytebank operando normalmente 🚀",
+    database: "PostgreSQL Connected",
+    docs: "As rotas /transfers e /sync-user exigem Bearer Token no header Authorization"
+  });
+});
+
 // 💡 CORREÇÃO CRÍTICA PARA O RENDER: Libera o SSL do PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
