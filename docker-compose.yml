@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: my-postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fluxo
+    ports:
+      - "5432:5432" # Exposes DB to your Windows host machine (e.g., for DBeaver)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: . # Tells Docker to look for a Dockerfile in the current directory
+    container_name: fluxo-api
+    restart: always
+    ports:
+      - "4000:4000" # Exposes the Express API to your frontend
+    environment:
+      # Format: postgres://USER:PASSWORD@SERVICE_NAME:PORT/DATABASE
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/fluxo
+      - PORT=4000
+    depends_on:
+      - db # Ensures the database starts before the API tries to connect
+
+volumes:
+  pgdata:
